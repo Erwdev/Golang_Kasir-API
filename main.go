@@ -85,7 +85,7 @@ func deleteProduk(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteCategory(w http.ResponseWriter, r *http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/api/produk_tugas/")
+	idStr := strings.TrimPrefix(r.URL.Path, "/categories/")
 
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -107,29 +107,8 @@ func deleteCategory(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Category belum ada", http.StatusBadRequest)
 }
 
-func getCategoryByID(w http.ResponseWriter, r *http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/api/produk_tugas/")
-
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "invalid categories id", http.StatusBadRequest)
-		return
-	}
-
-	for _, p := range categories {
-		if p.ID == id {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(p)
-			return
-		}
-	}
-
-	http.Error(w, "categories belum ada", http.StatusBadRequest)
-
-}
-
 func updateCategory(w http.ResponseWriter, r *http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/api/produk_tugas/")
+	idStr := strings.TrimPrefix(r.URL.Path, "/categories/")
 
 	id, err := strconv.Atoi(idStr)
 
@@ -149,16 +128,43 @@ func updateCategory(w http.ResponseWriter, r *http.Request) {
 	for i := range categories {
 		if categories[i].ID == id {
 			updateCategory.ID = id
-			categories[i] = updateCategory
+
+			if updateCategory.Name != ""{
+				categories[i].Name = updateCategory.Name
+			}
+			if updateCategory.Description != ""{
+				categories[i].Description = updateCategory.Description
+			}
 
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(updateCategory)
+			json.NewEncoder(w).Encode(categories[i])
 			return
 		}
 	}
 
 	http.Error(w, "categories belum ada", http.StatusBadRequest)
 }
+func getCategoryByID(w http.ResponseWriter, r *http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/categories/")
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "invalid categories id", http.StatusBadRequest)
+		return
+	}
+
+	for _, p := range categories {
+		if p.ID == id {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(p)
+			return
+		}
+	}
+
+	http.Error(w, "categories belum ada", http.StatusBadRequest)
+
+}
+
 
 func main() {
 
