@@ -9,18 +9,17 @@ type Category struct {
 }
 
 var categories = []Category{
-	{ID: 1, Name: "Beras Premium 5kg", Description: "Beras putih kualitas premium kemasan 5 kilogram"},
-	{ID: 2, Name: "Minyak Goreng 2L", Description: "Minyak goreng sawit kemasan botol 2 liter"},
-	{ID: 3, Name: "Gula Pasir 1kg", Description: "Gula pasir putih kemasan 1 kilogram"},
-	{ID: 4, Name: "Susu UHT Coklat", Description: "Susu UHT rasa coklat kemasan 1 liter"},
-	{ID: 5, Name: "Mie Instan Goreng", Description: "Mie instan goreng rasa original"},
-	{ID: 6, Name: "Kopi Bubuk 200g", Description: "Kopi bubuk robusta kemasan 200 gram"},
-	{ID: 7, Name: "Teh Celup 25pcs", Description: "Teh celup hitam isi 25 kantong"},
-	{ID: 8, Name: "Sabun Mandi Cair", Description: "Sabun mandi cair dengan aroma segar"},
-	{ID: 9, Name: "Pasta Gigi 120g", Description: "Pasta gigi dengan perlindungan gigi berlubang"},
-	{ID: 10, Name: "Air Mineral 600ml", Description: "Air mineral dalam kemasan botol 600 ml"},
+    {ID: 1, Name: "Makanan", Description: "Kategori untuk makanan ringan dan berat"},
+    {ID: 2, Name: "Minuman", Description: "Kategori untuk minuman kemasan"},
+    {ID: 3, Name: "Bumbu Dapur", Description: "Kategori untuk bumbu dan penyedap"},
+    {ID: 4, Name: "Sembako", Description: "Kategori untuk kebutuhan pokok"},
+    {ID: 5, Name: "Snack", Description: "Kategori untuk camilan dan makanan ringan"},
+    {ID: 6, Name: "Toiletries", Description: "Kategori untuk keperluan mandi dan kebersihan"},
+    {ID: 7, Name: "Peralatan Dapur", Description: "Kategori untuk alat-alat dapur"},
+    {ID: 8, Name: "Frozen Food", Description: "Kategori untuk makanan beku"},
+    {ID: 9, Name: "Produk Kesehatan", Description: "Kategori untuk vitamin dan obat-obatan"},
+    {ID: 10, Name: "Elektronik", Description: "Kategori untuk barang elektronik"},
 }
-
 
 // jangan lupa pake package main biar bisa ke detect satu namespace dan di link pas compiling dengan main.go sebagai entry point 
 //jangan lupa compile semuanya pake go run . (all) aja dlu 

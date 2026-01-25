@@ -1,223 +1,223 @@
 {
-    "info": {
-        "name": "Kasir API",
-        "description": "Collection for kasir-api v0.1 - 👨‍💻 benedictuserwdev@gmail.com",
-        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-    },
-    "item": [
-        {
-            "name": "Root",
-            "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                    "raw": "http://localhost:8080/",
-                    "protocol": "http",
-                    "host": ["localhost"],
-                    "port": "8080",
-                    "path": [""]
-                }
-            }
-        },
-        {
-            "name": "Health Check",
-            "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                    "raw": "http://localhost:8080/health",
-                    "protocol": "http",
-                    "host": ["localhost"],
-                    "port": "8080",
-                    "path": ["health"]
-                }
-            }
-        },
-        {
-            "name": "Produk",
-            "item": [
-                {
-                    "name": "Get All Produk",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "http://localhost:8080/api/produk",
-                            "protocol": "http",
-                            "host": ["localhost"],
-                            "port": "8080",
-                            "path": ["api", "produk"]
-                        }
-                    }
-                },
-                {
-                    "name": "Get Produk By ID",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "http://localhost:8080/api/produk/1",
-                            "protocol": "http",
-                            "host": ["localhost"],
-                            "port": "8080",
-                            "path": ["api", "produk", "1"]
-                        }
-                    }
-                },
-                {
-                    "name": "Create Produk",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"nama\": \"Aqua 600ml\",\n    \"harga\": 2500,\n    \"stok\": 30\n}"
-                        },
-                        "url": {
-                            "raw": "http://localhost:8080/api/produk",
-                            "protocol": "http",
-                            "host": ["localhost"],
-                            "port": "8080",
-                            "path": ["api", "produk"]
-                        }
-                    }
-                },
-                {
-                    "name": "Update Produk",
-                    "request": {
-                        "method": "PUT",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"nama\": \"Indomie Goreng\",\n    \"harga\": 4000,\n    \"stok\": 15\n}"
-                        },
-                        "url": {
-                            "raw": "http://localhost:8080/api/produk/1",
-                            "protocol": "http",
-                            "host": ["localhost"],
-                            "port": "8080",
-                            "path": ["api", "produk", "1"]
-                        }
-                    }
-                },
-                {
-                    "name": "Delete Produk",
-                    "request": {
-                        "method": "DELETE",
-                        "header": [],
-                        "url": {
-                            "raw": "http://localhost:8080/api/produk/1",
-                            "protocol": "http",
-                            "host": ["localhost"],
-                            "port": "8080",
-                            "path": ["api", "produk", "1"]
-                        }
-                    }
-                }
-            ]
-        },
-        {
-            "name": "Categories",
-            "item": [
-                {
-                    "name": "Get All Categories",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "http://localhost:8080/categories",
-                            "protocol": "http",
-                            "host": ["localhost"],
-                            "port": "8080",
-                            "path": ["categories"]
-                        }
-                    }
-                },
-                {
-                    "name": "Get Category By ID",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "http://localhost:8080/categories/1",
-                            "protocol": "http",
-                            "host": ["localhost"],
-                            "port": "8080",
-                            "path": [ "categories", "1"]
-                        }
-                    }
-                },
-                {
-                    "name": "Create Category",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"nama\": \"Minuman\",\n    \"deskripsi\": \"Kategori untuk minuman\"\n}"
-                        },
-                        "url": {
-                            "raw": "http://localhost:8080/categories",
-                            "protocol": "http",
-                            "host": ["localhost"],
-                            "port": "8080",
-                            "path": ["categories"]
-                        }
-                    }
-                },
-                {
-                    "name": "Update Category",
-                    "request": {
-                        "method": "PUT",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"nama\": \"Makanan\",\n    \"deskripsi\": \"Kategori untuk makanan ringan\"\n}"
-                        },
-                        "url": {
-                            "raw": "http://localhost:8080/categories/1",
-                            "protocol": "http",
-                            "host": ["localhost"],
-                            "port": "8080",
-                            "path": ["categories", "1"]
-                        }
-                    }
-                },
-                {
-                    "name": "Delete Category",
-                    "request": {
-                        "method": "DELETE",
-                        "header": [],
-                        "url": {
-                            "raw": "http://localhost:8080/categories/1",
-                            "protocol": "http",
-                            "host": ["localhost"],
-                            "port": "8080",
-                            "path": [ "categories", "1"]
-                        }
-                    }
-                }
-            ]
+  "info": {
+    "name": "Kasir API",
+    "description": "Collection for kasir-api v0.1 - 👨‍💻 benedictuserwdev@gmail.com",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Root",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": [""]
         }
-    ]
+      }
+    },
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/health",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "Produk",
+      "item": [
+        {
+          "name": "Get All Produk",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/produk",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "produk"]
+            }
+          }
+        },
+        {
+          "name": "Get Produk By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/produk/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "produk", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Produk",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nama\": \"Aqua 600ml\",\n    \"harga\": 2500,\n    \"stok\": 30\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/produk",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "produk"]
+            }
+          }
+        },
+        {
+          "name": "Update Produk",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nama\": \"Indomie Goreng\",\n    \"harga\": 4000,\n    \"stok\": 15\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/produk/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "produk", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Produk",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/produk/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "produk", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "Get All Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/categories",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["categories"]
+            }
+          }
+        },
+        {
+          "name": "Get Category By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/categories/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["categories", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Minuman\",\n    \"description\": \"Kategori untuk minuman kemasan\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/categories",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["categories"]
+            }
+          }
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Makanan\",\n    \"description\": \"Kategori untuk makanan ringan dan berat\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/categories/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["categories", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/categories/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["categories", "1"]
+            }
+          }
+        }
+      ]
+    }
+  ]
 }

@@ -127,17 +127,11 @@ func updateCategory(w http.ResponseWriter, r *http.Request) {
 
 	for i := range categories {
 		if categories[i].ID == id {
-			updateCategory.ID = id
-
-			if updateCategory.Name != "" {
-				categories[i].Name = updateCategory.Name
-			}
-			if updateCategory.Description != "" {
-				categories[i].Description = updateCategory.Description
-			}
+			updateCategory.ID = id //biar tetep sama
+			categories[i] = updateCategory
 
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(categories[i])
+			json.NewEncoder(w).Encode(updateCategory)
 			return
 		}
 	}
@@ -211,7 +205,7 @@ func main() {
 		}
 	})
 
-	http.HandleFunc("/api/categories/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/categories/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
 			getCategoryByID(w, r)
 		} else if r.Method == "PUT" {
@@ -259,6 +253,7 @@ func main() {
 			}
 			c.ID = len(categories) + 1
 			categories = append(categories, c)
+			
 			w.WriteHeader(http.StatusCreated)
 			json.NewEncoder(w).Encode(c)
 		}
