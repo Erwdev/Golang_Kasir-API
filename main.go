@@ -127,11 +127,16 @@ func updateCategory(w http.ResponseWriter, r *http.Request) {
 
 	for i := range categories {
 		if categories[i].ID == id {
-			updateCategory.ID = id //biar tetep sama
-			categories[i] = updateCategory
+
+			if updateCategory.Name != "" {
+				categories[i].Name = updateCategory.Name
+			}
+			if updateCategory.Description != "" {
+				categories[i].Description = updateCategory.Description
+			}
 
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(updateCategory)
+			json.NewEncoder(w).Encode(categories[i])
 			return
 		}
 	}
@@ -162,6 +167,11 @@ func getCategoryByID(w http.ResponseWriter, r *http.Request) {
 func main() {
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"message":   "🛒 Welcome to Kasir API",
@@ -177,11 +187,12 @@ func main() {
 				},
 				"categories": map[string]string{
 					"get_all":   "GET /categories",
-					"get_by_id": "GET /api/categories/:id",
+					"get_by_id": "GET /categories/:id",
 					"create":    "POST /categories",
-					"update":    "PUT /api/categories/:id",
-					"delete":    "DELETE /api/categories/:id",
+					"update":    "PUT /categories/:id",
+					"delete":    "DELETE /categories/:id",
 				},
+
 				"health": "GET /health",
 			},
 			"status": "✅ Running",
@@ -205,44 +216,46 @@ func main() {
 		}
 	})
 
-	http.HandleFunc("/categories/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" {
-			getCategoryByID(w, r)
-		} else if r.Method == "PUT" {
-			updateCategory(w, r)
-		} else if r.Method == "DELETE" {
-			deleteCategory(w, r)
-		}
-	})
-
+	
 	// bawah handler buat tanpa slash endpoint karena lebih simple katanya
 	// yang atas buat handling dengan slug parameter id
-
+	
 	http.HandleFunc("/api/produk", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(produk)
 
-		} else if r.Method == "POST" {
-			var produkBaru Produk
-			err := json.NewDecoder(r.Body).Decode(&produkBaru)
-			if err != nil {
-				http.Error(w, "Invalid Request Body", http.StatusBadRequest)
-				return
+			} else if r.Method == "POST" {
+				var produkBaru Produk
+				err := json.NewDecoder(r.Body).Decode(&produkBaru)
+				if err != nil {
+					http.Error(w, "Invalid Request Body", http.StatusBadRequest)
+					return
+				}
+				// pake pointer buat arahin decoder simpen di alamat situ
+				
+				produkBaru.ID = len(produk) + 1
+				produk = append(produk, produkBaru)
+				
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusCreated) //201 status code
+				json.NewEncoder(w).Encode(produkBaru)
 			}
-			// pake pointer buat arahin decoder simpen di alamat situ
-
-			produkBaru.ID = len(produk) + 1
-			produk = append(produk, produkBaru)
-
+		})
+		
+		http.HandleFunc("/categories/", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == "GET" {
+				getCategoryByID(w, r)
+			} else if r.Method == "PUT" {
+				updateCategory(w, r)
+			} else if r.Method == "DELETE" {
+				deleteCategory(w, r)
+			}
+		})
+		
+		http.HandleFunc("/categories", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusCreated) //201 status code
-			json.NewEncoder(w).Encode(produkBaru)
-		}
-	})
-
-	http.HandleFunc("/categories", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" {
+			if r.Method == "GET" {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(categories)
 		} else if r.Method == "POST" {
@@ -253,10 +266,12 @@ func main() {
 			}
 			c.ID = len(categories) + 1
 			categories = append(categories, c)
-			
+
 			w.WriteHeader(http.StatusCreated)
 			json.NewEncoder(w).Encode(c)
 		}
+
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	})
 
 	fmt.Println("Server running at http://localhost:8080")
