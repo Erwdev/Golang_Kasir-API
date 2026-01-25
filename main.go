@@ -8,13 +8,11 @@ import (
 	"strings"
 )
 
-
-
 func getProdukByID(w http.ResponseWriter, r *http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/api/produk/")//trim prefix yang ditentuin hard coded
+	idStr := strings.TrimPrefix(r.URL.Path, "/api/produk/") //trim prefix yang ditentuin hard coded
 
-	id, err := strconv.Atoi(idStr)//convert dari string ke int
-	if err != nil{
+	id, err := strconv.Atoi(idStr) //convert dari string ke int
+	if err != nil {
 		http.Error(w, "Invalid Product ID", http.StatusBadRequest)
 		return
 
@@ -36,22 +34,22 @@ func updateProduk(w http.ResponseWriter, r *http.Request) {
 	idStr := strings.TrimPrefix(r.URL.Path, "/api/produk/")
 
 	id, err := strconv.Atoi(idStr)
-	if err != nil{
+	if err != nil {
 		http.Error(w, "invalid product ID", http.StatusBadRequest)
 		return
 	}
 
-	var updateProduk Produk 
+	var updateProduk Produk
 	err = json.NewDecoder(r.Body).Decode(&updateProduk)
-	if err != nil{
+	if err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
 	for i := range produk {
-		if produk[i].ID == id{
-			updateProduk.ID = id//biar tetep sama
-			produk[i] =  updateProduk
+		if produk[i].ID == id {
+			updateProduk.ID = id //biar tetep sama
+			produk[i] = updateProduk
 
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(updateProduk)
@@ -64,23 +62,22 @@ func updateProduk(w http.ResponseWriter, r *http.Request) {
 
 func deleteProduk(w http.ResponseWriter, r *http.Request) {
 	idStr := strings.TrimPrefix(r.URL.Path, "/api/produk/")
-	
+
 	id, err := strconv.Atoi(idStr)
-	if err != nil{
+	if err != nil {
 		http.Error(w, "invalid product ID", http.StatusBadRequest)
 		return
 	}
-	
-	for i,p := range produk {
-		if p.ID == id{
-			produk =  append(produk[:i], produk[i+1:]...)//mirip spread operator di js??
-			//basically masukin lagi by slicing bagian kue dari sisi kiri sama kanan index yang jadi target wkkwwk mirip python 
 
+	for i, p := range produk {
+		if p.ID == id {
+			produk = append(produk[:i], produk[i+1:]...) //mirip spread operator di js??
+			//basically masukin lagi by slicing bagian kue dari sisi kiri sama kanan index yang jadi target wkkwwk mirip python
 
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]string{
 				"message": "Product deleted",
-			})//delete cukup konfirmasi aja 
+			}) //delete cukup konfirmasi aja
 			return
 		}
 	}
@@ -88,63 +85,71 @@ func deleteProduk(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte("Welcome to kasir-api v0.1"))
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"message":   "🛒 Welcome to Kasir API",
+			"version":   "v0.1",
+			"developer": "👨‍💻 benedictuserwdev@gmail.com",
+			"endpoints": map[string]string{
+				"health":    "GET /health",
+				"get_all":   "GET /api/produk",
+				"get_by_id": "GET /api/produk/:id",
+				"create":    "POST /api/produk",
+				"update":    "PUT /api/produk/:id",
+				"delete":    "DELETE /api/produk/:id",
+			},
+			"status": "✅ Running",
+		})
 	})
-
 
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{
-			"status": "OK",
+			"status":  "OK",
 			"message": "API running",
 		})
 	})
 
 	http.HandleFunc("/api/produk/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET"{
+		if r.Method == "GET" {
 			getProdukByID(w, r)
-		}else if r.Method == "PUT"{
+		} else if r.Method == "PUT" {
 			updateProduk(w, r)
-		}else if r.Method == "DELETE"{
+		} else if r.Method == "DELETE" {
 			deleteProduk(w, r)
 		}
 	})
 
 	// bawah handler buat tanpa slash endpoint karena lebih simple katanya
-	// yang atas buat handling dengan slug parameter id 
+	// yang atas buat handling dengan slug parameter id
 
 	http.HandleFunc("/api/produk", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(produk)
 
-
-		}else if r.Method == "POST"{
-			var produkBaru Produk 
+		} else if r.Method == "POST" {
+			var produkBaru Produk
 			err := json.NewDecoder(r.Body).Decode(&produkBaru)
 			if err != nil {
 				http.Error(w, "Invalid Request Body", http.StatusBadRequest)
 				return
 			}
-			// pake pointer buat arahin decoder simpen di alamat situ 
+			// pake pointer buat arahin decoder simpen di alamat situ
 
 			produkBaru.ID = len(produk) + 1
-			produk = append(produk,produkBaru)
+			produk = append(produk, produkBaru)
 
 			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusCreated)//201 status code
+			w.WriteHeader(http.StatusCreated) //201 status code
 			json.NewEncoder(w).Encode(produkBaru)
 		}
 	})
-
 
 	fmt.Println("Server running at http://localhost:8080")
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		fmt.Println("Error starting server:", err)
-	}//jangan lupa masukin return nil di main biar ga error dan handling
+	} //jangan lupa masukin return nil di main biar ga error dan handling
 }
-
