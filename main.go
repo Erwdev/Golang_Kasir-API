@@ -129,10 +129,10 @@ func updateCategory(w http.ResponseWriter, r *http.Request) {
 		if categories[i].ID == id {
 			updateCategory.ID = id
 
-			if updateCategory.Name != ""{
+			if updateCategory.Name != "" {
 				categories[i].Name = updateCategory.Name
 			}
-			if updateCategory.Description != ""{
+			if updateCategory.Description != "" {
 				categories[i].Description = updateCategory.Description
 			}
 
@@ -164,7 +164,6 @@ func getCategoryByID(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "categories belum ada", http.StatusBadRequest)
 
 }
-
 
 func main() {
 
@@ -253,21 +252,15 @@ func main() {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(categories)
 		} else if r.Method == "POST" {
-			var produkCategory Category
-
-			err := json.NewDecoder(r.Body).Decode(&produkCategory)
-
-			if err != nil {
-				http.Error(w, "Invalid Request body", http.StatusBadRequest)
+			var c Category
+			if err := json.NewDecoder(r.Body).Decode(&c); err != nil {
+				http.Error(w, "Invalid request", http.StatusBadRequest)
 				return
 			}
-
-			produkCategory.ID = len(categories) + 1
-			categories = append(categories, produkCategory)
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusCreated) //201 status code
-			json.NewEncoder(w).Encode(produkCategory)
+			c.ID = len(categories) + 1
+			categories = append(categories, c)
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(c)
 		}
 	})
 
