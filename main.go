@@ -84,6 +84,82 @@ func deleteProduk(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Product belum ada", http.StatusBadRequest)
 }
 
+func deleteCategory(w http.ResponseWriter, r *http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/api/produk_tugas/")
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "invalid categories id", http.StatusBadRequest)
+		return
+	}
+
+	for i, p := range categories {
+		if p.ID == id {
+			categories = append(categories[:i], categories[i+1:]...)
+
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]string{
+				"message": "Category deleted",
+			})
+			return
+		}
+	}
+	http.Error(w, "Category belum ada", http.StatusBadRequest)
+}
+
+func getCategoryByID(w http.ResponseWriter, r *http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/api/produk_tugas/")
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "invalid categories id", http.StatusBadRequest)
+		return
+	}
+
+	for _, p := range categories {
+		if p.ID == id {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(p)
+			return
+		}
+	}
+
+	http.Error(w, "categories belum ada", http.StatusBadRequest)
+
+}
+
+func updateCategory(w http.ResponseWriter, r *http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/api/produk_tugas/")
+
+	id, err := strconv.Atoi(idStr)
+
+	if err != nil {
+		http.Error(w, "invalid categories id", http.StatusBadRequest)
+		return
+	}
+
+	var updateCategory Category
+	err = json.NewDecoder(r.Body).Decode(&updateCategory)
+
+	if err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	for i := range categories {
+		if categories[i].ID == id {
+			updateCategory.ID = id
+			categories[i] = updateCategory
+
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(updateCategory)
+			return
+		}
+	}
+
+	http.Error(w, "categories belum ada", http.StatusBadRequest)
+}
+
 func main() {
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -92,13 +168,22 @@ func main() {
 			"message":   "🛒 Welcome to Kasir API",
 			"version":   "v0.1",
 			"developer": "👨‍💻 benedictuserwdev@gmail.com",
-			"endpoints": map[string]string{
-				"health":    "GET /health",
-				"get_all":   "GET /api/produk",
-				"get_by_id": "GET /api/produk/:id",
-				"create":    "POST /api/produk",
-				"update":    "PUT /api/produk/:id",
-				"delete":    "DELETE /api/produk/:id",
+			"endpoints": map[string]interface{}{
+				"produk": map[string]string{
+					"get_all":   "GET /api/produk",
+					"get_by_id": "GET /api/produk/:id",
+					"create":    "POST /api/produk",
+					"update":    "PUT /api/produk/:id",
+					"delete":    "DELETE /api/produk/:id",
+				},
+				"categories": map[string]string{
+					"get_all":   "GET /categories",
+					"get_by_id": "GET /api/categories/:id",
+					"create":    "POST /categories",
+					"update":    "PUT /api/categories/:id",
+					"delete":    "DELETE /api/categories/:id",
+				},
+				"health": "GET /health",
 			},
 			"status": "✅ Running",
 		})
@@ -118,6 +203,16 @@ func main() {
 			updateProduk(w, r)
 		} else if r.Method == "DELETE" {
 			deleteProduk(w, r)
+		}
+	})
+
+	http.HandleFunc("/api/categories/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			getCategoryByID(w, r)
+		} else if r.Method == "PUT" {
+			updateCategory(w, r)
+		} else if r.Method == "DELETE" {
+			deleteCategory(w, r)
 		}
 	})
 
@@ -144,6 +239,29 @@ func main() {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusCreated) //201 status code
 			json.NewEncoder(w).Encode(produkBaru)
+		}
+	})
+
+	http.HandleFunc("/categories", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(categories)
+		} else if r.Method == "POST" {
+			var produkCategory Category
+
+			err := json.NewDecoder(r.Body).Decode(&produkCategory)
+
+			if err != nil {
+				http.Error(w, "Invalid Request body", http.StatusBadRequest)
+				return
+			}
+
+			produkCategory.ID = len(categories) + 1
+			categories = append(categories, produkCategory)
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated) //201 status code
+			json.NewEncoder(w).Encode(produkCategory)
 		}
 	})
 
