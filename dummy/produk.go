@@ -10,6 +10,7 @@ type Produk struct {
 }
 
 var produk = []Produk{
+	
 	{ID: 1, Nama: "Indomie Goreng", Harga: 3500, Stok: 50},
 	{ID: 2, Nama: "Indomie Godog", Harga: 3500, Stok: 40},
 	{ID: 3, Nama: "Indomie Rendang", Harga: 4000, Stok: 30},
