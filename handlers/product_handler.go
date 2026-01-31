@@ -18,7 +18,7 @@ func NewProductHandler(service *services.ProductService) *ProductHandler {
 }
 
 // / HandleProducts - GET /api/produk
-func (h *ProductHandler) HandlerProducts(w http.ResponseWriter, r *http.Request) {
+func (h *ProductHandler) HandleProducts(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		h.GetAll(w, r)
@@ -28,7 +28,7 @@ func (h *ProductHandler) HandlerProducts(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
-
+//buat single responsibility di offload ke method lain 
 func (h *ProductHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	products, err := h.service.GetAll()
 	if err != nil {
@@ -54,6 +54,9 @@ func (h *ProductHandler) Create(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(product)
 }
+
+
+//MULAI BAGIAN ENDPOINT DENGAN SLUG dengan flow selector handle
 
 // / HandleProductByID - GET/PUT/DELETE /api/produk/{id}
 func (h *ProductHandler) HandleProductByID(w http.ResponseWriter, r *http.Request) {

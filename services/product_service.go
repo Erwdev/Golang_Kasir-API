@@ -5,6 +5,8 @@ import (
 	"kasir-api/repositories"
 )
 
+//intermediate lah disini sama repo dengan handler
+
 type ProductService struct {
 	repo *repositories.ProductRepository
 }

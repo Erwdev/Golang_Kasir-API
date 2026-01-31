@@ -8,7 +8,7 @@ import (
 )
 
 func InitDB(connectionString string )(*sql.DB, error) {
-	db, err := sql.Open("postgress", connectionString)
+	db, err := sql.Open("postgres", connectionString)
 	if err != nil {
 		return nil, err
 	}
