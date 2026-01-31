@@ -3,10 +3,20 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"kasir-api/database"
+	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
+
+	"github.com/spf13/viper"
 )
+
+type Config struct {
+	Port   string `mapstructure:"PORT"`
+	DBConn string `mapstructure:"DB_CONN"`
+}
 
 func getProdukByID(w http.ResponseWriter, r *http.Request) {
 	idStr := strings.TrimPrefix(r.URL.Path, "/api/produk/") //trim prefix yang ditentuin hard coded
@@ -165,6 +175,24 @@ func getCategoryByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	if _, err := os.Stat(".env"); err == nil {
+		viper.SetConfigFile(".env")
+		_ = viper.ReadInConfig()
+	}
+
+	config := Config{
+		Port:   viper.GetString("PORT"),
+		DBConn: viper.GetString("DB_CONN"),
+	}
+
+	db, err := database.InitDB(config.DBConn)
+	if err != nil {
+		log.Fatal("Failed to initialize database:", err)
+	}
+	defer db.Close()
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 
@@ -216,46 +244,45 @@ func main() {
 		}
 	})
 
-	
 	// bawah handler buat tanpa slash endpoint karena lebih simple katanya
 	// yang atas buat handling dengan slug parameter id
-	
+
 	http.HandleFunc("/api/produk", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(produk)
 
-			} else if r.Method == "POST" {
-				var produkBaru Produk
-				err := json.NewDecoder(r.Body).Decode(&produkBaru)
-				if err != nil {
-					http.Error(w, "Invalid Request Body", http.StatusBadRequest)
-					return
-				}
-				// pake pointer buat arahin decoder simpen di alamat situ
-				
-				produkBaru.ID = len(produk) + 1
-				produk = append(produk, produkBaru)
-				
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusCreated) //201 status code
-				json.NewEncoder(w).Encode(produkBaru)
+		} else if r.Method == "POST" {
+			var produkBaru Produk
+			err := json.NewDecoder(r.Body).Decode(&produkBaru)
+			if err != nil {
+				http.Error(w, "Invalid Request Body", http.StatusBadRequest)
+				return
 			}
-		})
-		
-		http.HandleFunc("/categories/", func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == "GET" {
-				getCategoryByID(w, r)
-			} else if r.Method == "PUT" {
-				updateCategory(w, r)
-			} else if r.Method == "DELETE" {
-				deleteCategory(w, r)
-			}
-		})
-		
-		http.HandleFunc("/categories", func(w http.ResponseWriter, r *http.Request) {
+			// pake pointer buat arahin decoder simpen di alamat situ
+
+			produkBaru.ID = len(produk) + 1
+			produk = append(produk, produkBaru)
+
 			w.Header().Set("Content-Type", "application/json")
-			if r.Method == "GET" {
+			w.WriteHeader(http.StatusCreated) //201 status code
+			json.NewEncoder(w).Encode(produkBaru)
+		}
+	})
+
+	http.HandleFunc("/categories/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			getCategoryByID(w, r)
+		} else if r.Method == "PUT" {
+			updateCategory(w, r)
+		} else if r.Method == "DELETE" {
+			deleteCategory(w, r)
+		}
+	})
+
+	http.HandleFunc("/categories", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == "GET" {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(categories)
 		} else if r.Method == "POST" {
@@ -274,9 +301,11 @@ func main() {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	})
 
-	fmt.Println("Server running at http://localhost:8080")
-	err := http.ListenAndServe(":8080", nil)
+	addr := "0.0.0.0:" + config.Port
+	fmt.Println("Server running at http://" + addr)
+
+	err = http.ListenAndServe(addr, nil)
 	if err != nil {
 		fmt.Println("Error starting server:", err)
-	} //jangan lupa masukin return nil di main biar ga error dan handling
+	}
 }
