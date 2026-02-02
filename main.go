@@ -10,7 +10,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -19,86 +18,6 @@ import (
 type Config struct {
 	Port   string `mapstructure:"PORT"`
 	DBConn string `mapstructure:"DB_CONN"`
-}
-
-func deleteCategory(w http.ResponseWriter, r *http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/categories/")
-
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "invalid categories id", http.StatusBadRequest)
-		return
-	}
-
-	for i, p := range categories {
-		if p.ID == id {
-			categories = append(categories[:i], categories[i+1:]...)
-
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{
-				"message": "Category deleted",
-			})
-			return
-		}
-	}
-	http.Error(w, "Category belum ada", http.StatusBadRequest)
-}
-
-func updateCategory(w http.ResponseWriter, r *http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/categories/")
-
-	id, err := strconv.Atoi(idStr)
-
-	if err != nil {
-		http.Error(w, "invalid categories id", http.StatusBadRequest)
-		return
-	}
-
-	var updateCategory Category
-	err = json.NewDecoder(r.Body).Decode(&updateCategory)
-
-	if err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
-		return
-	}
-
-	for i := range categories {
-		if categories[i].ID == id {
-
-			if updateCategory.Name != "" {
-				categories[i].Name = updateCategory.Name
-			}
-			if updateCategory.Description != "" {
-				categories[i].Description = updateCategory.Description
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(categories[i])
-			return
-		}
-	}
-
-	http.Error(w, "categories belum ada", http.StatusBadRequest)
-}
-func getCategoryByID(w http.ResponseWriter, r *http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/categories/")
-
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "invalid categories id", http.StatusBadRequest)
-		return
-	}
-
-	for _, p := range categories {
-		if p.ID == id {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(p)
-			return
-		}
-	}
-
-	http.Error(w, "categories belum ada", http.StatusBadRequest)
-
 }
 
 func main() {
@@ -126,7 +45,10 @@ func main() {
 	productService := services.NewProductService(productRepo)
 	productHandler := handlers.NewProductHandler(productService)
 
-
+	categoryRepo := repositories.NewCategoryRepository(db)
+	categoryService := services.NewCategoryService(categoryRepo)
+	categoryHandler := handlers.NewCategoryHandler(categoryService)
+	
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 
@@ -173,37 +95,10 @@ func main() {
 	//endpoint dengan slug 
 	http.HandleFunc("/api/produk/", productHandler.HandleProductByID)
 
-
-	http.HandleFunc("/categories/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" {
-			getCategoryByID(w, r)
-		} else if r.Method == "PUT" {
-			updateCategory(w, r)
-		} else if r.Method == "DELETE" {
-			deleteCategory(w, r)
-		}
-	})
-
-	http.HandleFunc("/categories", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		if r.Method == "GET" {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(categories)
-		} else if r.Method == "POST" {
-			var c Category
-			if err := json.NewDecoder(r.Body).Decode(&c); err != nil {
-				http.Error(w, "Invalid request", http.StatusBadRequest)
-				return
-			}
-			c.ID = len(categories) + 1
-			categories = append(categories, c)
-
-			w.WriteHeader(http.StatusCreated)
-			json.NewEncoder(w).Encode(c)
-		}
-
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	})
+	//buat endpoint tanpa slug
+	http.HandleFunc("/categories", categoryHandler.HandleCategories)
+	//endpoint dengan slug 
+	http.HandleFunc("/categories/", categoryHandler.HandleCategoryByID)
 
 	// start server
 	addr := "0.0.0.0:" + config.Port
