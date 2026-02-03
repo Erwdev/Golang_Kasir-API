@@ -4,4 +4,8 @@ type Product struct {
 	Name string `json:"name"`
 	Price int	`json:"price"`
 	Stock int `json:"stock"`
+	CategoryID int `json:"category_id"`
+	CategoryName string `json:"category_name"`
 }
+
+//category name itu buat hasil dari join 

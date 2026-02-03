@@ -1,10 +1,11 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"log"
-
-	_"github.com/lib/pq"
+	"time"
+	_ "github.com/lib/pq"
 )
 
 func InitDB(connectionString string )(*sql.DB, error) {
@@ -23,4 +24,10 @@ func InitDB(connectionString string )(*sql.DB, error) {
 	db.SetMaxIdleConns(5)
 	log.Println("Database connected successfully")
 	return db , nil
+}
+
+func HealthCheck(db *sql.DB) error{
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	return db.PingContext(ctx)
 }

@@ -5,115 +5,69 @@ import (
 	"fmt"
 	"kasir-api/database"
 	"kasir-api/handlers"
+	"kasir-api/internal/logger"
 	"kasir-api/repositories"
 	"kasir-api/services"
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/spf13/viper"
 )
 
+// Config hanya pegang PORT dan DB_CONN.
+// Railway set env di OS level, bukan di file .env,
+// jadi kita baca os.Getenv() langsung sebagai prioritas utama.
 type Config struct {
-	Port   string `mapstructure:"PORT"`
-	DBConn string `mapstructure:"DB_CONN"`
+	Port   string
+	DBConn string
 }
 
-func deleteCategory(w http.ResponseWriter, r *http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/categories/")
-
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "invalid categories id", http.StatusBadRequest)
-		return
+// loadConfig baca config dengan urutan prioritas:
+//  1. OS environment variable (Railway set di sini)
+//  2. .env file (untuk local development)
+//  3. Default value
+func loadConfig() Config {
+	// Coba baca .env untuk local dev — kalau file-nya ga ada, ga error
+	if _, err := os.Stat(".env"); err == nil {
+		viper.SetConfigFile(".env")
+		viper.SetConfigType("env")
+		viper.ReadInConfig() // error di-ignore, wajar kalau ga ada
 	}
 
-	for i, p := range categories {
-		if p.ID == id {
-			categories = append(categories[:i], categories[i+1:]...)
-
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{
-				"message": "Category deleted",
-			})
-			return
-		}
-	}
-	http.Error(w, "Category belum ada", http.StatusBadRequest)
-}
-
-func updateCategory(w http.ResponseWriter, r *http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/categories/")
-
-	id, err := strconv.Atoi(idStr)
-
-	if err != nil {
-		http.Error(w, "invalid categories id", http.StatusBadRequest)
-		return
-	}
-
-	var updateCategory Category
-	err = json.NewDecoder(r.Body).Decode(&updateCategory)
-
-	if err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
-		return
-	}
-
-	for i := range categories {
-		if categories[i].ID == id {
-
-			if updateCategory.Name != "" {
-				categories[i].Name = updateCategory.Name
-			}
-			if updateCategory.Description != "" {
-				categories[i].Description = updateCategory.Description
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(categories[i])
-			return
-		}
-	}
-
-	http.Error(w, "categories belum ada", http.StatusBadRequest)
-}
-func getCategoryByID(w http.ResponseWriter, r *http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/categories/")
-
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "invalid categories id", http.StatusBadRequest)
-		return
-	}
-
-	for _, p := range categories {
-		if p.ID == id {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(p)
-			return
-		}
-	}
-
-	http.Error(w, "categories belum ada", http.StatusBadRequest)
-
-}
-
-func main() {
+	// Baca dari viper sebagai fallback (dari .env)
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	if _, err := os.Stat(".env"); err == nil {
-		viper.SetConfigFile(".env")
-		_ = viper.ReadInConfig()
+	cfg := Config{}
+
+	// PORT: OS env > .env > default "8080"
+	if port := os.Getenv("PORT"); port != "" {
+		cfg.Port = port
+	} else if port := viper.GetString("PORT"); port != "" {
+		cfg.Port = port
+	} else {
+		cfg.Port = "8080"
 	}
 
-	config := Config{
-		Port:   viper.GetString("PORT"),
-		DBConn: viper.GetString("DB_CONN"),
+	// DB_CONN: OS env > .env
+	// Railway biasanya kasih DATABASE_URL langsung,
+	// tapi kalau lo pake env name DB_CONN di Railway dashboard, itu juga fine.
+	if dbConn := os.Getenv("DB_CONN"); dbConn != "" {
+		cfg.DBConn = dbConn
+	} else if dbConn := os.Getenv("DATABASE_URL"); dbConn != "" {
+		// fallback ke DATABASE_URL yang Railway auto-generate
+		cfg.DBConn = dbConn
+	} else {
+		cfg.DBConn = viper.GetString("DB_CONN")
 	}
+
+	return cfg
+}
+
+func main() {
+	config := loadConfig()
 
 	db, err := database.InitDB(config.DBConn)
 	if err != nil {
@@ -121,15 +75,21 @@ func main() {
 	}
 	defer db.Close()
 
-	//dep injection 
-	productRepo := repositories.NewProductRepository(db)
-	productService := services.NewProductService(productRepo)
-	productHandler := handlers.NewProductHandler(productService)
+	// Initialize logger
+	appLogger := logger.New()
+	appLogger.Info("Starting Kasir API", "port", config.Port)
 
+	// Dep injection
+	productRepo := repositories.NewProductRepository(db, appLogger)
+	productService := services.NewProductService(productRepo, appLogger)
+	productHandler := handlers.NewProductHandler(productService, appLogger)
 
+	categoryRepo := repositories.NewCategoryRepository(db, appLogger)
+	categoryService := services.NewCategoryService(categoryRepo, appLogger)
+	categoryHandler := handlers.NewCategoryHandler(categoryService, appLogger)
 
+	// Root endpoint
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
 			return
@@ -154,63 +114,43 @@ func main() {
 					"update":    "PUT /categories/:id",
 					"delete":    "DELETE /categories/:id",
 				},
-
 				"health": "GET /health",
 			},
 			"status": "✅ Running",
 		})
 	})
 
+	// Health check
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]string{
-			"status":  "OK",
-			"message": "API running",
+		dbStatus := "connected"
+		if err := database.HealthCheck(db); err != nil {
+			dbStatus = "disconnected"
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":   "OK",
+			"database": dbStatus,
+			"message":  "API running",
 		})
 	})
 
-	//buat endpoint tanpa slug
+	// Produk endpoints
 	http.HandleFunc("/api/produk", productHandler.HandleProducts)
-	//endpoint dengan slug 
 	http.HandleFunc("/api/produk/", productHandler.HandleProductByID)
 
+	// Categories endpoints
+	http.HandleFunc("/categories", categoryHandler.HandleCategories)
+	http.HandleFunc("/categories/", categoryHandler.HandleCategoryByID)
 
-	http.HandleFunc("/categories/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" {
-			getCategoryByID(w, r)
-		} else if r.Method == "PUT" {
-			updateCategory(w, r)
-		} else if r.Method == "DELETE" {
-			deleteCategory(w, r)
-		}
-	})
-
-	http.HandleFunc("/categories", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		if r.Method == "GET" {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(categories)
-		} else if r.Method == "POST" {
-			var c Category
-			if err := json.NewDecoder(r.Body).Decode(&c); err != nil {
-				http.Error(w, "Invalid request", http.StatusBadRequest)
-				return
-			}
-			c.ID = len(categories) + 1
-			categories = append(categories, c)
-
-			w.WriteHeader(http.StatusCreated)
-			json.NewEncoder(w).Encode(c)
-		}
-
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	})
-
-	// start server
+	// Start server
 	addr := "0.0.0.0:" + config.Port
 	fmt.Println("Server running at http://" + addr)
+	appLogger.Info("Server started successfully", "address", addr)
 
-	err = http.ListenAndServe(addr, nil)
-	if err != nil {
-		fmt.Println("Error starting server:", err)
+	if err := http.ListenAndServe(addr, nil); err != nil {
+		appLogger.Error("Error starting server", "error", err)
+		log.Fatal("Error starting server:", err)
 	}
 }
