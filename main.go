@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"kasir-api/database"
 	"kasir-api/handlers"
+	"kasir-api/internal/logger"
 	"kasir-api/repositories"
 	"kasir-api/services"
 	"log"
@@ -53,14 +54,18 @@ func main() {
 	}
 	defer db.Close()
 
-	//dep injection
-	productRepo := repositories.NewProductRepository(db)
-	productService := services.NewProductService(productRepo)
-	productHandler := handlers.NewProductHandler(productService)
+	// Initialize logger
+	appLogger := logger.New()
+	appLogger.Info("Starting Kasir API", "port", config.Port)
 
-	categoryRepo := repositories.NewCategoryRepository(db)
-	categoryService := services.NewCategoryService(categoryRepo)
-	categoryHandler := handlers.NewCategoryHandler(categoryService)
+	//dep injection
+	productRepo := repositories.NewProductRepository(db, appLogger)
+	productService := services.NewProductService(productRepo, appLogger)
+	productHandler := handlers.NewProductHandler(productService, appLogger)
+
+	categoryRepo := repositories.NewCategoryRepository(db, appLogger)
+	categoryService := services.NewCategoryService(categoryRepo, appLogger)
+	categoryHandler := handlers.NewCategoryHandler(categoryService, appLogger)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 
@@ -126,9 +131,11 @@ func main() {
 	// start server
 	addr := "0.0.0.0:" + config.Port
 	fmt.Println("Server running at http://" + addr)
+	appLogger.Info("Server started successfully", "address", addr)
 
 	err = http.ListenAndServe(addr, nil)
 	if err != nil {
+		appLogger.Error("Error starting server", "error", err)
 		fmt.Println("Error starting server:", err)
 	}
 }
