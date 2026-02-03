@@ -26,11 +26,24 @@ func main() {
 
 	if _, err := os.Stat(".env"); err == nil {
 		viper.SetConfigFile(".env")
-		_ = viper.ReadInConfig()
+		viper.ReadInConfig()
+	}
+
+	// Setelah ReadInConfig, override balik dari OS env
+	if port := os.Getenv("PORT"); port != "" {
+		viper.Set("PORT", port) // Set punya prioritas tertinggi
+	}
+	if dbConn := os.Getenv("DB_CONN"); dbConn != "" {
+		viper.Set("DB_CONN", dbConn)
+	}
+
+	port := viper.GetString("PORT")
+	if port == "" {
+		port = "8080"
 	}
 
 	config := Config{
-		Port:   viper.GetString("PORT"),
+		Port:   port,
 		DBConn: viper.GetString("DB_CONN"),
 	}
 
@@ -40,7 +53,7 @@ func main() {
 	}
 	defer db.Close()
 
-	//dep injection 
+	//dep injection
 	productRepo := repositories.NewProductRepository(db)
 	productService := services.NewProductService(productRepo)
 	productHandler := handlers.NewProductHandler(productService)
@@ -48,7 +61,6 @@ func main() {
 	categoryRepo := repositories.NewCategoryRepository(db)
 	categoryService := services.NewCategoryService(categoryRepo)
 	categoryHandler := handlers.NewCategoryHandler(categoryService)
-	
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 
@@ -84,20 +96,31 @@ func main() {
 	})
 
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]string{
-			"status":  "OK",
-			"message": "API running",
+		// json.NewEncoder(w).Encode(map[string]string{
+		// 	"status":  "OK",
+		// 	"message": "API running",
+		// })
+		dbStatus := "connected"
+		if err := database.HealthCheck(db); err != nil {
+			dbStatus = "disconnected"
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":   "OK",
+			"database": dbStatus,
+			"message":  "API running",
 		})
 	})
 
 	//buat endpoint tanpa slug
 	http.HandleFunc("/api/produk", productHandler.HandleProducts)
-	//endpoint dengan slug 
+	//endpoint dengan slug
 	http.HandleFunc("/api/produk/", productHandler.HandleProductByID)
 
 	//buat endpoint tanpa slug
 	http.HandleFunc("/categories", categoryHandler.HandleCategories)
-	//endpoint dengan slug 
+	//endpoint dengan slug
 	http.HandleFunc("/categories/", categoryHandler.HandleCategoryByID)
 
 	// start server
