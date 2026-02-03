@@ -16,37 +16,58 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Config hanya pegang PORT dan DB_CONN.
+// Railway set env di OS level, bukan di file .env,
+// jadi kita baca os.Getenv() langsung sebagai prioritas utama.
 type Config struct {
-	Port   string `mapstructure:"PORT"`
-	DBConn string `mapstructure:"DB_CONN"`
+	Port   string
+	DBConn string
 }
 
-func main() {
+// loadConfig baca config dengan urutan prioritas:
+//  1. OS environment variable (Railway set di sini)
+//  2. .env file (untuk local development)
+//  3. Default value
+func loadConfig() Config {
+	// Coba baca .env untuk local dev — kalau file-nya ga ada, ga error
+	if _, err := os.Stat(".env"); err == nil {
+		viper.SetConfigFile(".env")
+		viper.SetConfigType("env")
+		viper.ReadInConfig() // error di-ignore, wajar kalau ga ada
+	}
+
+	// Baca dari viper sebagai fallback (dari .env)
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	if _, err := os.Stat(".env"); err == nil {
-		viper.SetConfigFile(".env")
-		viper.ReadInConfig()
-	}
+	cfg := Config{}
 
-	// Setelah ReadInConfig, override balik dari OS env
+	// PORT: OS env > .env > default "8080"
 	if port := os.Getenv("PORT"); port != "" {
-		viper.Set("PORT", port) // Set punya prioritas tertinggi
+		cfg.Port = port
+	} else if port := viper.GetString("PORT"); port != "" {
+		cfg.Port = port
+	} else {
+		cfg.Port = "8080"
 	}
+
+	// DB_CONN: OS env > .env
+	// Railway biasanya kasih DATABASE_URL langsung,
+	// tapi kalau lo pake env name DB_CONN di Railway dashboard, itu juga fine.
 	if dbConn := os.Getenv("DB_CONN"); dbConn != "" {
-		viper.Set("DB_CONN", dbConn)
+		cfg.DBConn = dbConn
+	} else if dbConn := os.Getenv("DATABASE_URL"); dbConn != "" {
+		// fallback ke DATABASE_URL yang Railway auto-generate
+		cfg.DBConn = dbConn
+	} else {
+		cfg.DBConn = viper.GetString("DB_CONN")
 	}
 
-	port := os.Getenv("PORT")
-    if port == "" {
-        port = "8080"
-    }
+	return cfg
+}
 
-	config := Config{
-		Port:   port,
-		DBConn: viper.GetString("DB_CONN"),
-	}
+func main() {
+	config := loadConfig()
 
 	db, err := database.InitDB(config.DBConn)
 	if err != nil {
@@ -58,7 +79,7 @@ func main() {
 	appLogger := logger.New()
 	appLogger.Info("Starting Kasir API", "port", config.Port)
 
-	//dep injection
+	// Dep injection
 	productRepo := repositories.NewProductRepository(db, appLogger)
 	productService := services.NewProductService(productRepo, appLogger)
 	productHandler := handlers.NewProductHandler(productService, appLogger)
@@ -67,8 +88,8 @@ func main() {
 	categoryService := services.NewCategoryService(categoryRepo, appLogger)
 	categoryHandler := handlers.NewCategoryHandler(categoryService, appLogger)
 
+	// Root endpoint
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
 			return
@@ -93,24 +114,21 @@ func main() {
 					"update":    "PUT /categories/:id",
 					"delete":    "DELETE /categories/:id",
 				},
-
 				"health": "GET /health",
 			},
 			"status": "✅ Running",
 		})
 	})
 
+	// Health check
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		// json.NewEncoder(w).Encode(map[string]string{
-		// 	"status":  "OK",
-		// 	"message": "API running",
-		// })
 		dbStatus := "connected"
 		if err := database.HealthCheck(db); err != nil {
 			dbStatus = "disconnected"
 			w.WriteHeader(http.StatusServiceUnavailable)
 		}
 
+		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":   "OK",
 			"database": dbStatus,
@@ -118,24 +136,21 @@ func main() {
 		})
 	})
 
-	//buat endpoint tanpa slug
+	// Produk endpoints
 	http.HandleFunc("/api/produk", productHandler.HandleProducts)
-	//endpoint dengan slug
 	http.HandleFunc("/api/produk/", productHandler.HandleProductByID)
 
-	//buat endpoint tanpa slug
+	// Categories endpoints
 	http.HandleFunc("/categories", categoryHandler.HandleCategories)
-	//endpoint dengan slug
 	http.HandleFunc("/categories/", categoryHandler.HandleCategoryByID)
 
-	// start server
+	// Start server
 	addr := "0.0.0.0:" + config.Port
 	fmt.Println("Server running at http://" + addr)
 	appLogger.Info("Server started successfully", "address", addr)
 
-	err = http.ListenAndServe(addr, nil)
-	if err != nil {
+	if err := http.ListenAndServe(addr, nil); err != nil {
 		appLogger.Error("Error starting server", "error", err)
-		fmt.Println("Error starting server:", err)
+		log.Fatal("Error starting server:", err)
 	}
 }
