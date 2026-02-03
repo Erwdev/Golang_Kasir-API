@@ -38,10 +38,10 @@ func main() {
 		viper.Set("DB_CONN", dbConn)
 	}
 
-	port := viper.GetString("PORT")
-	if port == "" {
-		port = "8080"
-	}
+	port := os.Getenv("PORT")
+    if port == "" {
+        port = "8080"
+    }
 
 	config := Config{
 		Port:   port,
