@@ -10,71 +10,17 @@ import (
 	"kasir-api/services"
 	"log"
 	"net/http"
-	"os"
-	"strings"
-
-	"github.com/spf13/viper"
+	"kasir-api/internal/config"
 )
 
-// Config hanya pegang PORT dan DB_CONN.
-// Railway set env di OS level, bukan di file .env,
-// jadi kita baca os.Getenv() langsung sebagai prioritas utama.
-type Config struct {
-	Port   string
-	DBConn string
-}
-
-// loadConfig baca config dengan urutan prioritas:
-//  1. OS environment variable (Railway set di sini)
-//  2. .env file (untuk local development)
-//  3. Default value
-func loadConfig() Config {
-	// Coba baca .env untuk local dev — kalau file-nya ga ada, ga error
-	if _, err := os.Stat(".env"); err == nil {
-		viper.SetConfigFile(".env")
-		viper.SetConfigType("env")
-		viper.ReadInConfig() // error di-ignore, wajar kalau ga ada
-	}
-
-	// Baca dari viper sebagai fallback (dari .env)
-	viper.AutomaticEnv()
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-
-	cfg := Config{}
-
-	// PORT: OS env > .env > default "8080"
-	if port := os.Getenv("PORT"); port != "" {
-		cfg.Port = port
-	} else if port := viper.GetString("PORT"); port != "" {
-		cfg.Port = port
-	} else {
-		cfg.Port = "8080"
-	}
-
-	// DB_CONN: OS env > .env
-	// Railway biasanya kasih DATABASE_URL langsung,
-	// tapi kalau lo pake env name DB_CONN di Railway dashboard, itu juga fine.
-	if dbConn := os.Getenv("DB_CONN"); dbConn != "" {
-		cfg.DBConn = dbConn
-	} else if dbConn := os.Getenv("DATABASE_URL"); dbConn != "" {
-		// fallback ke DATABASE_URL yang Railway auto-generate
-		cfg.DBConn = dbConn
-	} else {
-		cfg.DBConn = viper.GetString("DB_CONN")
-	}
-
-	return cfg
-}
-
 func main() {
-	config := loadConfig()
+	config := config.Load()
 
 	db, err := database.InitDB(config.DBConn)
 	if err != nil {
 		log.Fatal("Failed to initialize database:", err)
 	}
 	defer db.Close()
-
 	// Initialize logger
 	appLogger := logger.New()
 	appLogger.Info("Starting Kasir API", "port", config.Port)
@@ -87,6 +33,10 @@ func main() {
 	categoryRepo := repositories.NewCategoryRepository(db, appLogger)
 	categoryService := services.NewCategoryService(categoryRepo, appLogger)
 	categoryHandler := handlers.NewCategoryHandler(categoryService, appLogger)
+
+	transactionRepo := repositories.NewTransactionRepository(db, appLogger)
+	transactionService := services.NewTransactionService(transactionRepo, appLogger)
+	transactionHandler := handlers.NewTransactionHandler(transactionService, appLogger)
 
 	// Root endpoint
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -114,11 +64,32 @@ func main() {
 					"update":    "PUT /categories/:id",
 					"delete":    "DELETE /categories/:id",
 				},
+				"checkout": "POST /api/checkout",
+				"metrics": "GET /metrics/db",
 				"health": "GET /health",
 			},
 			"status": "✅ Running",
 		})
 	})
+	
+
+    // Add monitoring endpoint
+    http.HandleFunc("/metrics/db", func(w http.ResponseWriter, r *http.Request) {
+        stats := db.Stats()
+        w.Header().Set("Content-Type", "application/json")
+        json.NewEncoder(w).Encode(map[string]interface{}{
+            "max_open_connections":   stats.MaxOpenConnections,
+            "open_connections":       stats.OpenConnections,
+            "in_use":                stats.InUse,
+            "idle":                  stats.Idle,
+            "wait_count":            stats.WaitCount,
+            "wait_duration":         stats.WaitDuration.String(),
+            "max_idle_closed":       stats.MaxIdleClosed,
+            "max_idle_time_closed":  stats.MaxIdleTimeClosed,
+            "max_lifetime_closed":   stats.MaxLifetimeClosed,
+        })
+    })
+
 
 	// Health check
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -143,6 +114,9 @@ func main() {
 	// Categories endpoints
 	http.HandleFunc("/categories", categoryHandler.HandleCategories)
 	http.HandleFunc("/categories/", categoryHandler.HandleCategoryByID)
+
+
+	http.HandleFunc("/api/checkout", transactionHandler.HandleCheckout)
 
 	// Start server
 	addr := "0.0.0.0:" + config.Port

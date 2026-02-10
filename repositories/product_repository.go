@@ -30,27 +30,44 @@ func (repo *ProductRepository) Create(product *models.Product) error {
 	return nil
 }
 
-func (repo *ProductRepository) GetAll() ([]models.Product, error) {
+func (repo *ProductRepository) GetAll(name string) ([]models.Product, error) {
 	repo.logger.Info("Fetching all products")
 	query := `
 		SELECT p.id, p.name, p.price, p.stock, p.category_id, c.name as category_name
 		FROM products p 
 		LEFT JOIN categories c ON p.category_id = c.id
-	`
-	rows, err := repo.db.Query(query)
+	"`
+
+	var args []interface{}//array of any type arguments
+	if name != ""{
+		query += "WHERE p.name ILIKE $1"
+		args = append(args, "%" + name + "%" )
+		//parameterized query biar aman dari sql injection
+	}
+	//ILIKE itu case insensitive search 
+	//postgres bakalan yang handle pembentukan qyery dengan parameter bahaya
+
+	rows, err := repo.db.Query(query, args...)
+	//passing args karena bisa ada bisa enggak filter name nya
+
 	if err != nil {
 		repo.logger.Error("Failed to fetch products", "error", err)
 		return nil, err
 	}
+
 	defer rows.Close()
 	// jalan di akhir close connect db always
+	//akan jalan setelah fungsi GetAll ini selesai dieksekusi
 
 	//kode di bawah buat ubah hasil query mentah jadi bentuk struct product
 	products := make([]models.Product, 0)
 	for rows.Next() {
+		//baca data dari buffer go satu2 lalu copy ke struct product di heap memory
 		var p models.Product
 
 		err := rows.Scan(&p.ID, &p.Name, &p.Price, &p.Stock, &p.CategoryID, &p.CategoryName)
+		
+
 		if err != nil {
 			repo.logger.Error("Failed to scan product", "error", err)
 			return nil, err

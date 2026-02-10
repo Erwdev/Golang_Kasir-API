@@ -31,10 +31,14 @@ func (h *ProductHandler) HandleProducts(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// buat single responsibility di offload ke method lain
+// / GetAll - GET /api/produk
 func (h *ProductHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info("Handler: GET all products request")
-	products, err := h.service.GetAll()
+
+	name := r.URL.Query().Get("name")
+	products, err := h.service.GetAll(name)
+
+	// products, err := h.service.GetAll()
 	if err != nil {
 		h.logger.Error("Handler: Failed to get all products", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -46,7 +50,7 @@ func (h *ProductHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info("Handler: Successfully returned all products", "count", len(products))
 }
 
-// ...existing code...
+
 
 func (h *ProductHandler) Create(w http.ResponseWriter, r *http.Request) {
     var product models.Product

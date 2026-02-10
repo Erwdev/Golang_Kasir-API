@@ -17,13 +17,15 @@ func NewProductService(repo *repositories.ProductRepository, logger *slog.Logger
 	return &ProductService{repo: repo, logger: logger}
 }
 
-func (s *ProductService) GetAll() ([]models.Product, error) {
+func (s *ProductService) GetAll(name string ) ([]models.Product, error) {
 	s.logger.Info("Service: Getting all products")
-	products, err := s.repo.GetAll()
+
+	products, err := s.repo.GetAll(name)
 	if err != nil {
 		s.logger.Error("Service: Failed to get all products", "error", err)
 		return nil, err
 	}
+
 	s.logger.Info("Service: Successfully retrieved products", "count", len(products))
 	return products, nil
 }
